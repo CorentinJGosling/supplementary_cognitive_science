@@ -1,0 +1,848 @@
+---
+title: "Morning morality effect"
+author: "Tremoliere and Gosling"
+date: "25/03/2021"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{css, echo = FALSE}
+h1, #TOC>ul>li {
+  font-weight: 500;
+}
+
+h2, #TOC>ul>ul>li {
+  color: #3E3E3E;
+}
+.paragraph {
+  margin-left: 20px;
+}
+```
+
+# 1 - Introduction {.tabset}
+
+::: {.paragraph}
+```{r, message=FALSE, warning=FALSE}
+ library(ggplot2); library(tidyr); library(dplyr);library(car); library(metafor); library(kableExtra); library(gt); library(lme4); library(lmerTest); library(DescTools); library(stringr)
+```
+
+## Loading datasets
+```{r, echo=FALSE}
+Data_Study1_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study1_cognitive_science.txt")
+Data_Study2_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study2_cognitive_science.txt")
+
+Data_Study3_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study3_cognitive_science.txt")
+
+Data_Study4_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study4_cognitive_science.txt")
+
+Data_Study5_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study5_cognitive_science.txt")
+
+Data_Study6_MME <- read.delim("C:/Users/coren/Documents/CogSCIENCE_supp/Data_Study6_cognitive_science.txt")
+
+
+# Data_Study1_MME <- subset(Data_Study1_MME, select = -c(Age))
+# Data_Study2_MME <- subset(Data_Study2_MME, select = -c(Age))
+# Data_Study3_MME <- subset(Data_Study3_MME, select = -c(Age))
+# Data_Study4_MME <- subset(Data_Study4_MME, select = -c(Age))
+# Data_Study5_MME <- subset(Data_Study5_MME, select = -c(Age))
+# Data_Study6_MME <- subset(Data_Study6_MME, select = -c(Age))
+
+# rio::export(Data_Study1_MME, "Data_Study1_cognitive_science.txt")
+# rio::export(Data_Study2_MME, "Data_Study2_cognitive_science.txt")
+# rio::export(Data_Study3_MME, "Data_Study3_cognitive_science.txt")
+# rio::export(Data_Study4_MME, "Data_Study4_cognitive_science.txt")
+# rio::export(Data_Study5_MME, "Data_Study5_cognitive_science.txt")
+# rio::export(Data_Study6_MME, "Data_Study6_cognitive_science.txt")
+
+```
+
+```{r eval=FALSE}
+Data_Study1_MME <- read.delim(file.choose())
+Data_Study2_MME <- read.delim(file.choose())
+Data_Study3_MME <- read.delim(file.choose())
+Data_Study4_MME <- read.delim(file.choose())
+Data_Study5_MME <- read.delim(file.choose())
+Data_Study6_MME <- read.delim(file.choose())
+```
+
+## Scoring variables
+```{r message=FALSE, warnings=FALSE}
+Data_Study1_Raw <- Data_Study1_MME %>% 
+  dplyr::mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_DIL) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_DIL) & !is.na(Heure_TOT) ~ 1),
+#Detect participants failing at attention check
+    Attention_check=case_when(
+      Tromp == 2  ~ 1,
+      Tromp != 2 ~ 0)) 
+
+Data_Study2_Raw <- Data_Study2_MME %>% 
+  mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_SCA) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_SCA) & !is.na(Heure_TOT) ~ 1),
+#Detect participants failing at attention check
+    Attention_check = case_when(
+      Tromp == 2  ~ 1,
+      Tromp != 2 ~ 0))
+
+Data_Study3_Raw <- Data_Study3_MME %>% 
+  mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_SCA) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_SCA) & !is.na(Heure_TOT) ~ 1),
+#Attention check and sleep efficiency criterion set to 1 since there are none in the task
+  Attention_check = 1)
+
+Data_Study4_Raw <- Data_Study4_MME %>%
+  mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_DIL) | is.na(Moral_SCA) | is.na(Moral_CAR) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_DIL) & !is.na(Moral_SCA) & !is.na(Moral_CAR) & !is.na(Heure_TOT) ~ 1),
+#Detect participants failing at attention check
+    Attention_check=case_when(
+      Tromp == 0  ~ 1,
+      Tromp == 1 ~ 0))
+
+Data_Study5_Raw <- Data_Study5_MME %>% 
+  mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_DIL) | is.na(Moral_SCA) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_DIL) & !is.na(Moral_SCA) & !is.na(Heure_TOT) ~ 1),
+#Attention check set to 1 since there are none in the task
+   Attention_check = 1)
+
+Data_Study6_Raw <- Data_Study6_MME %>% 
+  mutate(
+#Check for missing Data
+   CCA = case_when(
+      is.na(Moral_DIL) | is.na(Moral_SCA) | is.na(Heure_TOT) ~ 0, 
+      !is.na(Moral_DIL) & !is.na(Moral_SCA) & !is.na(Heure_TOT) ~ 1),
+#Detect participants failing at attention check
+    Attention_check=case_when(
+      Tromp == 1 ~ 1,
+      Tromp != 1 ~ 0))
+
+# For each dataset, we select only the required columns, we create an outcome column describing the type of outcome used in the study, we create unique participant identifiers, and we set the minimal duration under which the task could not be correctly performed
+
+Data_MetaS1 <- Data_Study1_Raw %>% 
+  dplyr::select(ResponseId, Moral_DIL,
+          Age_correct, Attention_check, CCA, Duration, 
+          Heure_TOT, AOT_TOT, Narc_TOT, Mach_TOT, Psych_TOT, CRT_TOT, Num_TOT) %>% 
+  dplyr::mutate(
+    Outcome="Dilemmas", Study="1",
+    ResponseId=paste0(1:nrow(Data_Study1_Raw), "_S1"),
+    Duration.min=200
+         )
+
+Data_MetaS2 <- Data_Study2_Raw %>% 
+  dplyr::select(ResponseId,Moral_SCA, 
+         Age_correct, Attention_check, CCA, Duration, 
+         Heure_TOT, AOT_TOT, Narc_TOT, Mach_TOT, Psych_TOT, CRT_TOT, Num_TOT)%>% 
+  dplyr::mutate(
+    Outcome = "Scale", 
+    Study = "2",
+    ResponseId = paste0(1:nrow(Data_Study2_Raw), "_S2"),
+    Duration.min = 150
+    )
+
+Data_MetaS3 <- Data_Study3_Raw %>% 
+  dplyr::select(ResponseId, Moral_SCA,
+         Age_correct, CCA, Duration, Attention_check, Heure_TOT)%>% 
+  dplyr::mutate(
+    Outcome = "Scale", Study = "3",
+    ResponseId = paste0(1:nrow(Data_Study3_Raw), "_S3"),
+    Duration.min = 150
+    )
+
+Data_MetaS4.wide <- Data_Study4_Raw %>% 
+  dplyr::select(ResponseId,Moral_DIL, Moral_SCA, Moral_CAR, 
+                Age_correct, Attention_check, CCA, Duration, Heure_TOT)%>% 
+  dplyr::mutate(
+    Study = "4", 
+    ResponseId = paste0(1:nrow(Data_Study4_Raw), "_S4"),
+    Duration.min = 200
+    )
+
+Data_MetaS4 <- Data_MetaS4.wide %>%
+  pivot_longer(cols=c("Moral_DIL", "Moral_SCA", "Moral_CAR"), values_to="Moral_TOT",
+               names_to="Outcome_transit") %>%
+  dplyr::mutate(Outcome=case_when(
+           Outcome_transit=="Moral_DIL"~"Dilemmas",
+           Outcome_transit=="Moral_SCA"~"Scale",
+           Outcome_transit=="Moral_CAR"~"Autonomouscars"))
+
+Data_MetaS5.wide<-Data_Study5_Raw %>% 
+  dplyr::select(ResponseId,Moral_DIL, Moral_SCA, 
+                Age_correct, CCA, Duration, Attention_check, Heure_TOT) %>% 
+   dplyr::mutate(Study="5",
+         ResponseId=paste0(1:nrow(Data_Study5_Raw), "_S5"),
+         Duration.min=150,
+         )
+  
+Data_MetaS5<- Data_MetaS5.wide %>%
+  pivot_longer(cols=c("Moral_DIL", "Moral_SCA"), values_to="Moral_TOT", names_to="Outcome_transit") %>%
+   dplyr::mutate(Outcome=case_when(
+           Outcome_transit=="Moral_DIL"~"Dilemmas",
+           Outcome_transit=="Moral_SCA"~"Scale"))
+
+Data_MetaS6.wide<-Data_Study6_Raw %>% 
+   dplyr::select(ResponseId,Moral_DIL, Moral_SCA,
+                 Age_correct, CCA, Attention_check, Duration, SleepEfficiency.criteria, Heure_TOT) %>% 
+  dplyr::mutate(Study="6",
+         ResponseId=paste0(1:nrow(Data_Study6_Raw), "_S6"),
+         Duration.min=150
+         ) 
+
+Data_MetaS6<- Data_MetaS6.wide %>%
+  pivot_longer(cols=c("Moral_DIL", "Moral_SCA"), values_to="Moral_TOT", names_to="Outcome_transit") %>%
+   dplyr::mutate(Outcome=case_when(
+           Outcome_transit=="Moral_DIL"~"Dilemmas",
+           Outcome_transit=="Moral_SCA"~"Scale"))
+```
+
+Creating a an unique datasets combining all 6 studies
+```{r} 
+# we create 3 datasets with one row per participant
+# one dataset with all participants
+Data_Meta_Raw_transit.wide<- bind_rows(
+  Data_MetaS1, Data_MetaS2, Data_MetaS3, Data_MetaS4.wide, Data_MetaS5.wide, Data_MetaS6.wide)
+
+# one dataset with participants who have no missing values 
+Data_Meta_Raw.wide_CCA <- filter(Data_Meta_Raw_transit.wide, CCA==1) 
+
+# one dataset with participants who have who have no missing values, correct sleep efficiency ratio and credible sleep quantity
+Data_Meta_Raw.wide_CCA_excl1 <- filter(Data_Meta_Raw.wide_CCA, 
+                                       Heure_TOT >= 8 & Heure_TOT <=18)
+
+# one dataset with participants who have who have no missing values, correct sleep efficiency ratio, credible sleep quantity and correct attentional check
+Data_Meta_Raw.wide<-filter(Data_Meta_Raw.wide_CCA_excl1, Attention_check==1) 
+ 
+# we create a dataset with one row per outcome per participant
+# For example, in a study with 3 outcomes, a participants will have 3 rows
+Data_Meta_Raw.long <- Data_Meta_Raw.wide %>%
+  pivot_longer(
+    cols = c(Moral_DIL, Moral_SCA, Moral_CAR),
+    names_to = "Moral_name",
+    values_to = "Moral_TOT") %>%
+  filter(!is.na(Moral_TOT))
+```
+
+## Participants
+```{r, warning=FALSE}
+# we work on raw datasets regardless the missing values or the correctness of the attention check
+list_data_demographics <- list(
+  Data_Study1_Raw, Data_Study2_Raw, Data_Study3_Raw, Data_Study4_Raw, Data_Study5_Raw, Data_Study6_Raw
+)
+
+#  we create a function extracting the total number of participants, the number of participants with no missing value and the participants with a correct attentional check in each study. We also extracted the percentage of female.
+
+DEMOFUNCTION<-function(x){
+  N.TOT = nrow(x)
+  N.hour = nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18))
+  N.CCA = nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18)) - nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18 & CCA==1))
+  N.attcheck = nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18 & CCA == 1)) - nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18 & CCA == 1 & Attention_check == 1))
+  N.Analysis = nrow(subset(x, Heure_TOT >= 8 & Heure_TOT <=18 & CCA == 1 & Attention_check == 1))
+  Perc.Female = 1  - nrow(subset(x, Gender == 1))/nrow(x)
+  cbind(N.TOT, N.hour, N.CCA, N.attcheck, N.Analysis, Perc.Female)
+  }
+
+data_demographics<-data.frame(do.call(rbind, lapply(list_data_demographics, DEMOFUNCTION)))
+
+Data_presentation <- data.frame(
+  Study=1:6,
+  data_demographics) 
+  
+colnames(Data_presentation)<-c(
+  "Study",
+  "Total number of participants",
+  "Number of participants assessed in the 8:00am-6:00pm range",
+  "Number of participants with missing values",
+  "Number of participants with an incorrect attentional check",
+  "Number of participants retained in final analysis",
+  "% of female")
+
+gt(Data_presentation)
+```
+
+:::
+
+
+# 2 - Primary analysis {.tabset}
+
+::: {.paragraph}
+
+## Functions
+
+Function performing correlations depending on the study
+```{r}
+CorS1<-function(x){
+     cor(dplyr::select(x,
+             Moral_DIL,
+             Heure_TOT))}
+
+CorS2S3<-function(x){
+     cor(dplyr::select(x,
+             Moral_SCA,
+             Heure_TOT))}
+
+CorS4<-function(x){
+     cor(dplyr::select(x,
+             Moral_DIL,
+             Moral_SCA,
+             Moral_CAR,
+             Heure_TOT))}
+
+CorS5S6<-function(x){
+     cor(dplyr::select(x,
+           Moral_DIL,
+           Moral_SCA,
+           Heure_TOT))}
+
+CorFUNCTION <- function(x) {
+  ifelse(unique(x$Study)==1,
+    COR <- CorS1(x),
+    ifelse(unique(x$Study) %in% c(2,3),
+       COR<- CorS2S3(x),
+        ifelse(unique(x$Study)==4,
+          COR<- CorS4(x),
+            ifelse(unique(x$Study) %in% c(5,6),
+              COR<- CorS5S6(x),
+      NA))))
+   COR}
+```
+
+
+Function computing variance/covariance matrix based on the equation approach (Steiger, 1980). All the credit for this function should be given to Pr Wolfgang Viechtbauer.
+```{r}
+rmat <- function(x, n, upper=TRUE, simplify=TRUE, rtoz=TRUE, data) {
+
+   if (inherits(x, "formula")) {
+
+      options(na.action = "na.pass")
+
+      if (missing(data))
+         stop("Must specify 'data' argument when 'x' is a formula.")
+
+      if (!is.data.frame(data))
+         data <- data.frame(data)
+
+      dat <- get_all_vars(x, data=data)
+
+      if (ncol(dat) != 4)
+         stop("Incorrect number of variables specified in formula.")
+
+      id <- dat[,4]
+      dat <- split(dat, id)
+
+      res <- list()
+
+      for (i in 1:length(dat)) {
+
+         ri <- dat[[i]][[1]]
+         var1 <- as.character(dat[[i]][[2]])
+         var2 <- as.character(dat[[i]][[3]])
+
+         vars <- sort(unique(c(var1, var2)))
+
+         R <- matrix(NA, nrow=length(vars), ncol=length(vars))
+         diag(R) <- 1
+         rownames(R) <- colnames(R) <- vars
+
+         for (j in 1:length(var1)) {
+            R[var1[j],var2[j]] <- R[var2[j],var1[j]] <- ri[j]
+         }
+
+         res[[i]] <- R
+
+      }
+
+      return(rmat(res, n=n, simplify=TRUE, rtoz=rtoz))
+
+   }
+
+   if (is.list(x)) {
+
+      k <- length(x)
+
+      if (length(x) != length(n))
+         stop("Argument 'n' must be of the same length as there are elements in 'x'.")
+
+      res <- list()
+
+      for (i in 1:k) {
+         res[[i]] <- rmat(x[[i]], n[i], upper=upper, rtoz=rtoz)
+      }
+
+      if (simplify) {
+         ki <- sapply(res, function(x) ifelse(is.null(x$dat), 0, nrow(x$dat)))
+         dat <- cbind(id=rep(1:k, times=ki), do.call(rbind, lapply(res, "[[", "dat")))
+         V <- bldiag(lapply(res[ki > 0], "[[", "V"))
+         rownames(V) <- colnames(V) <- unlist(lapply(res, function(x) rownames(x$V)))
+         return(list(dat=dat, V=V))
+      } else {
+         return(res)
+      }
+
+   }
+
+   if (!is.matrix(x))
+      stop("Argument 'x' must be a matrix (or list thereof).")
+
+   if (dim(x)[1] != dim(x)[2])
+      stop("Argument 'x' must be a square matrix (or list thereof).")
+
+   dimsx <- nrow(x)
+   dnames <- paste0("x", 1:dimsx)
+
+   ### in case x has dimension names, use those
+
+   if (!is.null(rownames(x)))
+      dnames <- rownames(x)
+   if (!is.null(colnames(x)))
+      dnames <- colnames(x)
+
+   ### in case x is a 1x1 (or 0x0) matrix, return nothing
+
+   if (dimsx <= 1L)
+      return(list(dat=NULL, V=NULL))
+
+   ### make x symmetric, depending on whether we use upper or lower part
+
+   if (upper) {
+      x[lower.tri(x)] <- t(x)[lower.tri(x)]
+   } else {
+      x[upper.tri(x)] <- t(x)[upper.tri(x)]
+   }
+
+   ### check if x is symmetric (can be skipped since x must now be symmetric)
+
+   #if (!isSymmetric(x))
+   #   stop("x must be a symmetric matrix.")
+
+   ### stack upper/lower triangular part of x into a column vector (this is always done column-wise!)
+
+   if (upper) {
+      ri <- cbind(x[upper.tri(x)])
+   } else {
+      ri <- cbind(x[lower.tri(x)])
+   }
+
+   ### apply r-to-z transformation if requested
+
+   if (rtoz)
+      ri <- 1/2 * log((1 + ri)/(1 - ri))
+
+   ### I and J are matrices with 1:dimsx for rows and columns, respectively
+
+   I <- matrix(1:dimsx, nrow=dimsx, ncol=dimsx)
+   J <- matrix(1:dimsx, nrow=dimsx, ncol=dimsx, byrow=TRUE)
+
+   ### get upper/lower triangular elements of I and J
+
+   if (upper) {
+      I <- I[upper.tri(I)]
+      J <- J[upper.tri(J)]
+   } else {
+      I <- I[lower.tri(I)]
+      J <- J[lower.tri(J)]
+   }
+
+   ### dimensions in V (must be dimsx*(dimsx-1)/2)
+
+   dimsV <- length(ri)
+
+   ### set up V matrix
+
+   V <- matrix(NA, nrow=dimsV, ncol=dimsV)
+
+   for (ro in 1:dimsV) {
+      for (co in 1:dimsV) {
+
+         i <- I[ro]
+         j <- J[ro]
+         k <- I[co]
+         l <- J[co]
+
+         ### Olkin & Finn (1995), equation 5, page 157
+
+         V[ro,co] <- 1/2 * x[i,j]*x[k,l] * (x[i,k]^2 + x[i,l]^2 + x[j,k]^2 + x[j,l]^2) +
+                     x[i,k]*x[j,l] + x[i,l]*x[j,k] -
+                     (x[i,j]*x[i,k]*x[i,l] + x[j,i]*x[j,k]*x[j,l] + x[k,i]*x[k,j]*x[k,l] + x[l,i]*x[l,j]*x[l,k])
+
+         ### Steiger (1980), equation 2, page 245 (provides the same result - checked)
+
+         #V[ro,co] <- 1/2 * ((x[i,k] - x[i,j]*x[j,k]) * (x[j,l] - x[j,k]*x[k,l]) +
+         #                   (x[i,l] - x[i,k]*x[k,l]) * (x[j,k] - x[j,i]*x[i,k]) +
+         #                   (x[i,k] - x[i,l]*x[l,k]) * (x[j,l] - x[j,i]*x[i,l]) +
+         #                   (x[i,l] - x[i,j]*x[j,l]) * (x[j,k] - x[j,l]*x[l,k]))
+
+         ### Steiger (1980), equation 11, page 247 for r-to-z transformed values
+
+         if (rtoz)
+            V[ro,co] <- V[ro,co] / ((1 - x[i,j]^2) * (1 - x[k,l]^2))
+
+      }
+   }
+
+   ### divide V by (n-1) for raw correlations and by (n-3) for r-to-z transformed correlations
+
+   if (rtoz) {
+      V <- V/(n-3)
+   } else {
+      V <- V/(n-1)
+   }
+
+   ### create matrix with var1 and var2 names and sort rowwise
+
+   dmat <- cbind(dnames[I], dnames[J])
+   dmat <- t(apply(dmat, 1, sort))
+
+   ### set row/column names for V
+
+   var1var2 <- paste0(dmat[,1], ".", dmat[,2])
+   rownames(V) <- colnames(V) <- var1var2
+
+   return(list(dat=data.frame(yi=ri, var1=dmat[,1], var2=dmat[,2], var1var2=var1var2, stringsAsFactors=FALSE), V=V))
+
+}
+```
+
+Function computing the correlation and variance/covariance matrix while converting Pearson's r to Fisher's Z
+```{r}
+ RmatFUNCTION<-function(x,y){ 
+   rmat(x, n=y, rtoz=TRUE)}
+```
+
+Function extracting confidence intervals for correlations
+```{r}
+CorCIFUNCTION<-function(x,y){
+  CorCI(x,y, conf.level = (1-(0.05)))
+}
+```
+
+Function extracting critical information from meta analyses (performed using metafor)
+```{r}
+ExtractMetaFUNCTION<-function(x){
+  cbind(
+     Raw.r = FisherZInv(as.numeric(as.character(x$b))),
+     p.val = as.numeric(as.character(x$pval)),
+     Adj.p.val=as.numeric(as.character(x$pval)),
+     CIlow=FisherZInv(x$ci.lb),
+     CIup=FisherZInv(x$ci.ub),
+     TOST1=abs(FisherZInv(as.numeric(as.character(x$b))-as.numeric(as.character(x$se*qnorm(1-2*(0.05/(2))))))),
+     TOST2=abs(FisherZInv(as.numeric(as.character(x$b))+as.numeric(as.character(x$se*qnorm(1-2*(0.05/(2))))))),
+     Cochran.Q=x$QE,
+     Cochran.Q.p.val=x$QEp)
+}
+```
+
+Function extracting critical information about heterogeneity
+```{r}
+# x is the rma object and y the variance covariance matrix
+ExtractHeterogeneityFUNCTION<-function(x, y){
+     W<-solve(y)
+     X<-model.matrix(x)
+     P <- W - W %*% X %*% solve(t(X) %*% W %*% X) %*% t(X) %*% W
+     cbind(
+       stud.out=as.character(data.frame(x$g.levels.k)[,1]),
+       N=data.frame(x$g.levels.k)[,2],
+       Tau.sq=x$tau2,
+       Tau=sqrt(x$tau2),
+       Cochran.Q=x$QE,
+       Cochran.Q.p.val=x$QEp,
+       I.sq=100 *x$tau2 / (x$tau2 + (x$k-x$p)/sum(diag(P))))
+}
+```
+
+Functions selecting appropriate data in the correlation or variance/covariance matrix (i.e., information regarding only the relationship between sleep and moral outcomes and not those regarding - for example - the relationship between 2 sleep indicators)
+```{r}
+PredictFUNCTION<-function(x){
+x[str_detect(row.names(x), "Heure") & str_detect(row.names(x), "Moral"),
+  str_detect(colnames(x), "Heure") & str_detect(colnames(x), "Moral")]}
+
+```
+
+## Primary analysis (code)
+
+Multivariate random effects meta analysis (var-covar matrix estimated using equation based approach)
+
+Preparation of the general dataset. We split the large dataset including the 6 studies as required by most of the functions of the apply family
+```{r}
+Data_Meta_Raw.wide.split <- split(Data_Meta_Raw.wide, Data_Meta_Raw.wide$Study)
+```
+
+Obtaining sample size for each dataset (here, it is equal to the number of rows since we have evicted participants not retained in final analyses (i.e., those with missing values or incorrect attentional check)
+```{r}
+N.prim <- sapply(Data_Meta_Raw.wide.split, nrow)
+```
+
+Obtention of Correlation matrix and variance-Covariance matrix for each study
+```{r}
+Cor.matrix.prim <- lapply(Data_Meta_Raw.wide.split, CorFUNCTION)
+
+List.Cor.Varcovar.prim <- mapply(RmatFUNCTION, Cor.matrix.prim, N.prim, SIMPLIFY = FALSE)
+```
+
+Performing multivariate meta analysis
+```{r, warning=FALSE}
+# Correlation (Fisher's z) between all sleep indicators and all outcomes for each study
+
+ES.prim_transit<-do.call(rbind, lapply(List.Cor.Varcovar.prim, function(x) x$dat))
+
+ES.prim_transit1<-data.frame(cbind(
+  stud.out=row.names(ES.prim_transit), ES.prim_transit))
+
+ES.prim_transit2<-separate(ES.prim_transit1, stud.out,
+                          into=c("Study"))
+
+# Here, we delete all correlations not regarding sleep-moral outcomes relationship (k=40)
+
+ES.Prim<-ES.prim_transit2 %>%
+  rename("Outcome" = var2,
+         "Predictor" = var1,
+         "Out.Pred" = var1var2) %>% 
+  mutate(
+    Asso.of.int = case_when(
+      str_detect(Outcome, "Heure") & str_detect(Predictor, "Moral") ~ 1,
+      str_detect(Outcome, "Moral") & str_detect(Predictor, "Heure") ~ 1)) %>%
+  filter(Asso.of.int == 1)
+
+ES.Prim$N <- rep(N.prim, c(1, 1,1,3,2,2))
+
+ES.Prim$ES.ID<-1:nrow(ES.Prim)
+
+#Variance-covariance matrix for each study (N=6)
+List.Varcovar.prim_transit1<-lapply(List.Cor.Varcovar.prim, function(x) x$V)
+
+# we apply the Predictfunction to keep only associations of interest
+List.Varcovar.prim<-lapply(List.Varcovar.prim_transit1, PredictFUNCTION)
+
+V.Prim = bldiag(list(
+  List.Varcovar.prim[[1]], 
+  List.Varcovar.prim[[2]],
+  List.Varcovar.prim[[3]],
+  List.Varcovar.prim[[4]], 
+  List.Varcovar.prim[[5]],
+  List.Varcovar.prim[[6]]))
+
+# Primary analysis 
+Meta.Prim<-rma.mv(yi, V.Prim, 
+                  random = ~ Out.Pred | Study, 
+                  struct = "UN", 
+                  data = ES.Prim)
+
+# moderation analysis
+Meta.sec <- rma.mv(yi, V.Prim, 
+                  mods = ~Outcome - 1,
+                  random = ~ Out.Pred | Study, 
+                  struct = "UN", 
+                  data = ES.Prim)
+
+```
+
+## Primary analysis (results)
+```{r}
+#individual studies
+ES.Prim$Raw.r<-FisherZInv(ES.Prim$yi)
+
+df.ES.Prim<-data.frame(cbind(
+  ES.Prim,
+  t(apply(ES.Prim[,c('Raw.r','N')], 1, 
+          function(x) CorCIFUNCTION(x[1], x[2])))[,c('lwr.ci','upr.ci')]))
+
+colnames(df.ES.Prim)[c(10:11)] <- c("CIlow", "CIup")
+
+#Meta-analyses
+df.Meta.Res1.Prim<-as.data.frame(ExtractMetaFUNCTION(Meta.Prim))
+
+df.Meta.Prim.z<- df.Meta.Res1.Prim %>% 
+  dplyr::mutate(
+    Study="Pooled Effect Size",
+    Outcome="All outcomes",
+    N=sum(N.prim)) %>%
+  rowwise() %>%
+  dplyr::mutate(TOST=max(TOST1, TOST2)) %>%
+  dplyr::select(-c(TOST1,TOST2))
+
+df.Meta.Prim <- df.Meta.Prim.z[,c(8:10,1:2, 4:7, 11)]
+
+
+df.Results.Prim <- data.frame(bind_rows(df.Meta.Prim, df.ES.Prim[,-c(3,5,6)]))
+
+df.Results.Prim$Outcome <- dplyr::recode(df.Results.Prim$Outcome, 
+                                  Moral_DIL="Dilemmas", 
+                                  Moral_SCA="Scale", 
+                                  Moral_CAR="Autonomous.Cars")
+
+#Summary of the meta analysis
+gt(df.Results.Prim[1,1:10])%>% 
+  fmt_number(
+    columns = 4:10,
+    decimals = 3)
+```
+
+```{r}
+#Summary of the primary studies
+gt(df.Results.Prim[2:nrow(df.Results.Prim),c(
+  'Study', 'Outcome', 'N', 'Raw.r', 'CIlow', 'CIup')]) %>% 
+  fmt_number(
+    columns = 4:6,
+    decimals = 3)
+```
+
+## Primary analysis (plot)
+```{r, fig.width = 5, fig.height = 5}
+df.graph.prim <- df.Results.Prim
+df.graph.prim$pooled <- factor(ifelse(df.graph.prim$Outcome == "All outcomes", 1, 0))
+df.graph.prim$Study <- factor(df.graph.prim$Study)
+df.graph.prim$Study <- factor(df.graph.prim$Study,
+  levels=rev(levels(df.graph.prim$Study)))
+
+df.graph.prim2 <- df.graph.prim[order(df.graph.prim$Outcome),]
+
+p<-ggplot(data=df.graph.prim2) +
+  geom_hline(yintercept =0, linetype=2) +
+  geom_pointrange(position=position_dodge2(width=8), 
+                  aes(x = Study, y = Raw.r, 
+                       ymin = CIlow, ymax = CIup), size = 0)+
+  geom_point(aes(x = Study, y = Raw.r, color=pooled, size=pooled, fill = pooled, shape = pooled),  
+              position=position_dodge2(width=8))+
+  xlab('')+ ylab("Correlation coefficient\n (95% Confidence Interval)")+
+  scale_color_manual(values=c("#999999", "red")) +
+  scale_fill_manual(values=c("#999999", "red")) +
+  scale_size_manual(values=c(2, 5)) +
+  scale_shape_manual(values=c(21, 22)) +
+  coord_flip()+
+  theme_bw() +
+  theme(legend.position="right",
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          axis.text.x=element_text(size=10, face="bold"),
+          axis.title.y=element_text(size=12,face="bold"),
+          axis.title.x=element_text(size=12,face="bold"),
+          strip.text.x = element_text(hjust=0.5,vjust =0.5,angle=0,
+                                      size= 11),
+          legend.background = element_rect(size = 0.5, linetype = "solid", 
+                                  colour ="black"),
+        legend.box = "vertical") 
+
+p+guides(fill = FALSE, color = FALSE, shape = FALSE, size = FALSE,linetype = FALSE)# shape=FALSE,
+```
+
+::: 
+
+<br>
+
+
+
+# 3 - Exploration of heterogeneity
+
+::: {.paragraph}
+
+```{r}
+df.Meta.Res1.sec<-as.data.frame(ExtractMetaFUNCTION(Meta.sec))
+
+df.Meta.sec.z<- df.Meta.Res1.sec %>% 
+  dplyr::mutate(
+    Study="Pooled Effect Size",
+    Outcome= c("Autonomous cars", "Dilemmas", "Scale"),
+    N= c(N.prim[4], sum(N.prim[c(1,4,5,6)]), sum(N.prim[c(2:6)]))) %>%
+  rowwise() %>%
+  dplyr::mutate(TOST=max(TOST1, TOST2)) %>%
+  dplyr::select(-c(TOST1,TOST2))
+
+Heterogeneity.sec <- as.data.frame(ExtractHeterogeneityFUNCTION(Meta.sec, V.Prim))
+Heterogeneity.sec2 <- data.frame(apply(Heterogeneity.sec[,3:7], 2, function(x) as.numeric(as.character(x))))
+
+df.Meta.sec <- cbind(df.Meta.sec.z[,c(8:10,1:2, 4:7, 11)], 'I-square' = paste0(round(Heterogeneity.sec2$I.sq, 2), "%"))
+
+#Summary of the meta analysis
+gt(df.Meta.sec[2:3, 1:11])%>% 
+  fmt_number(
+    columns = 4:10,
+    decimals = 3)
+
+# Heterogeneity
+gt(Heterogeneity.sec2[2:3, ])%>% 
+  fmt_number(
+    columns = 1:5,
+    decimals = 3)
+
+gt(df.Results.Prim[df.Results.Prim$Outcome=="Dilemmas", c(1:4, 6:7)])
+
+
+gt(df.Results.Prim[df.Results.Prim$Outcome=="Scale", c(1:4, 6:7)])
+
+```
+
+:::
+
+
+<br>
+
+
+
+# 4 - Secondary analysis {.tabset}
+
+::: {.paragraph}
+
+## Confounding variables
+```{r, warning=FALSE}
+df.S1 <- Data_Meta_Raw.wide[Data_Meta_Raw.wide$Study == 1,]
+df.S1$Psych_Z <- (df.S1$Psych_TOT - mean(df.S1$Psych_TOT))/sd(df.S1$Psych_TOT)
+df.S1$Mach_Z <- (df.S1$Mach_TOT - mean(df.S1$Mach_TOT))/sd(df.S1$Mach_TOT)
+df.S1$Narc_Z <- (df.S1$Narc_TOT - mean(df.S1$Narc_TOT))/sd(df.S1$Narc_TOT)
+df.S1$DT <- with(df.S1, Psych_Z + Mach_Z + Narc_Z)
+
+cor.S1 <- cor.test(~Heure_TOT + Moral_DIL, df.S1)
+lm.S1.crude <- lm(Moral_DIL~Heure_TOT, df.S1)
+lm.S1.adj.CRT <- lm(Moral_DIL~Heure_TOT+CRT_TOT, df.S1)
+lm.S1.adj.Psych1 <- lm(Moral_DIL~Heure_TOT+Psych_Z, df.S1)
+lm.S1.adj.Mach1 <- lm(Moral_DIL~Heure_TOT+Mach_Z, df.S1)
+lm.S1.adj.Narc1 <- lm(Moral_DIL~Heure_TOT+Narc_Z, df.S1)
+lm.S1.adj.AOT <- lm(Moral_DIL~Heure_TOT+AOT_TOT, df.S1)
+lm.S1.adj.DT<- lm(Moral_DIL ~ Heure_TOT+DT, df.S1)
+
+res.S1 <- rbind(
+  broom::tidy(lm.S1.crude)[2,],
+  broom::tidy(lm.S1.adj.CRT)[2,],
+  broom::tidy(lm.S1.adj.Psych1)[2,],
+  broom::tidy(lm.S1.adj.Mach1)[2,],
+  broom::tidy(lm.S1.adj.Narc1)[2,],
+  broom::tidy(lm.S1.adj.DT)[2,],
+  broom::tidy(lm.S1.adj.AOT)[2,])
+res.S1$control <- c("crude", "CRT", "Psychopathy", "Machiavelism", "Narcissism", "Dark Triad", "AOT")
+res.S1$modification <- c(
+  NA_real_,
+  anova(lm.S1.crude, lm.S1.adj.CRT)$'Pr(>F)'[2],
+  anova(lm.S1.crude, lm.S1.adj.Psych1)$'Pr(>F)'[2],
+  anova(lm.S1.crude, lm.S1.adj.Mach1)$'Pr(>F)'[2],
+  anova(lm.S1.crude, lm.S1.adj.Narc1)$'Pr(>F)'[2],
+  anova(lm.S1.crude, lm.S1.adj.DT)$'Pr(>F)'[2],
+  anova(lm.S1.crude, lm.S1.adj.AOT)$'Pr(>F)'[2]
+  )
+
+gt(res.S1) %>% 
+  fmt_number(
+    columns = c(2:5,7),
+    decimals = 3)
+```
+
+## One-stage meta-analysis
+```{r, warning=FALSE}
+Meta.S3 <- lmerTest::lmer(Moral_TOT ~ Heure_TOT + (Heure_TOT:Moral_name - 1 | Study), data = Data_Meta_Raw.long)
+df.Meta.S3 <- broom.mixed::tidy(Meta.S3, conf.int = TRUE, conf.level = 1-0.05, effects = "fixed")
+df.Meta.S3
+```
+:::
+
+
